@@ -3,10 +3,6 @@ import serial
 from config import DO_METER
 
 
-def o2_simulator():
-    pass
-
-
 def byte_char_to_int_digit(b_char):
     switcher = {
         b'0': 0,
@@ -85,7 +81,7 @@ if __name__ == '__main__':
         stopbits=serial.STOPBITS_ONE,
         bytesize=serial.EIGHTBITS
     )
-    while 1:
+    while True:
         ser.reset_input_buffer()
         v_str = ser.read(16)
         D = []
