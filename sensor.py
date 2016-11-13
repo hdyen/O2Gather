@@ -15,6 +15,8 @@ class LutronDO5510(Sensor):
     STOPBITS = serial.STOPBITS_ONE
     BYTESIZE = serial.EIGHTBITS
 
+    input_buffer = []
+
     lock = threading.Lock()
 
     temperature = 0
@@ -30,27 +32,33 @@ class LutronDO5510(Sensor):
             stopbits=self.STOPBITS,
             bytesize=self.BYTESIZE
         )
+
+        try:
+            self.reset_input_buffer()
+        finally:
+            self.update_reading()
+
         self.thread_reset_input_buffer_per_second = threading.Thread(target=self.reset_input_buffer_per_second,
                                                                      daemon=True)
-        self.thread_reset_input_buffer_per_second.start()
         self.thread_update_reading_per_second = threading.Thread(target=self.update_reading_per_second, daemon=True)
+
+        self.thread_reset_input_buffer_per_second.start()
         self.thread_update_reading_per_second.start()
 
     def reset_input_buffer(self):
-        with self.lock:
-            self.ser.reset_input_buffer()
+        self.ser.reset_input_buffer()
 
     def reset_input_buffer_per_second(self):
         while True:
-            self.reset_input_buffer()
+            with self.lock:
+                self.reset_input_buffer()
             time.sleep(1)
 
     def read_input_buffer(self):
         v_str = self.ser.read(16)
-        buf = []
+        self.input_buffer = []
         for i in range(0, 16, 1):
-            buf.append(v_str[i:i + 1])
-        return buf
+            self.input_buffer.append(v_str[i:i + 1])
 
     def update_reading(self):
 
@@ -69,7 +77,8 @@ class LutronDO5510(Sensor):
             }
             return switcher.get(b_char)
 
-        buf = self.read_input_buffer()
+        self.read_input_buffer()
+        buf = self.input_buffer
 
         # Temperature
         lower_display_reading = 0
@@ -120,5 +129,6 @@ class LutronDO5510(Sensor):
 
     def update_reading_per_second(self):
         while True:
-            self.update_reading()
+            with self.lock:
+                self.update_reading()
             time.sleep(1)
