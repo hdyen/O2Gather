@@ -1,0 +1,5 @@
+[run]
+include = o2gather/*
+omit = *migrations*, *tests*
+plugins =
+    django_coverage_plugin
